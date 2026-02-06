@@ -29,7 +29,7 @@ Filecoin 钱包签名工具，用于管理密钥和签署区块链交易。
 
 ### 编译
 ```bash
-go build -o lotus-sign main.go
+go build -o wallet-sign main.go
 ```
 
 ## 配置
@@ -54,64 +54,64 @@ Path = "~/.lotus-sign/wallet.db"           # 数据库路径
 
 ```bash
 # 生成新钱包
-./lotus-sign wallet new secp256k1
-./lotus-sign wallet new bls
+./wallet-sign wallet new secp256k1
+./wallet-sign wallet new bls
 
 # 查看钱包列表
-./lotus-sign wallet list
+./wallet-sign wallet list
 
 # 查看钱包余额
-./lotus-sign wallet balance <address>
+./wallet-sign wallet balance <address>
 
 # 导出钱包
-./lotus-sign wallet export <address>
+./wallet-sign wallet export <address>
 
 # 导入钱包
-./lotus-sign wallet import <private-key>
+./wallet-sign wallet import <private-key>
 
 # 删除钱包
-./lotus-sign wallet delete <address>
+./wallet-sign wallet delete <address>
 ```
 
 ### 转账操作
 
 ```bash
 # 发送 FIL
-./lotus-sign send --from <from-address> <to-address> <amount>
+./wallet-sign send --from <from-address> <to-address> <amount>
 
 # 批量转账
-./lotus-sign send --from <from-address> --batch <file>
+./wallet-sign send --from <from-address> --batch <file>
 ```
 
 ### 矿工操作
 
 ```bash
 # 查看矿工信息
-./lotus-sign actor info <miner-id>
+./wallet-sign actor info <miner-id>
 
 # 矿工提现
-./lotus-sign withdraw <miner-id> <amount>
+./wallet-sign withdraw <miner-id> <amount>
 
 # 更改 owner
-./lotus-sign actor set-owner <miner-id> <new-owner> <from-address>
+./wallet-sign actor set-owner <miner-id> <new-owner> <from-address>
 
 # 更改 worker
-./lotus-sign actor set-worker <miner-id> <new-worker>
-./lotus-sign actor confirm-worker <miner-id>
+./wallet-sign actor set-worker <miner-id> <new-worker>
+./wallet-sign actor confirm-worker <miner-id>
 ```
 
 ### 市场操作
 
 ```bash
 # 市场提现
-./lotus-sign market withdraw <address> <amount>
+./wallet-sign market withdraw <address> <amount>
 ```
 
 ### 消息推送
 
 ```bash
 # 推送已签名消息
-./lotus-sign push <signed-message>
+./wallet-sign push <signed-message>
 ```
 
 ## 项目结构
