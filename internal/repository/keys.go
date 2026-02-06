@@ -12,16 +12,19 @@ import (
 	"wallet-sign/internal/chain/types"
 )
 
-// 加密密钥（使用 scrypt + PBKDF2 双重派生）
+// 加密密钥（使用 Scrypt + Argon2id 双重派生）
 var encryptionKey []byte
 
 // InitEncryptionKey 初始化加密密钥
 func InitEncryptionKey() {
 	seed := []byte(config.LotusConfig.Security.Seed)
-	// 第一层：scrypt 派生
-	scryptKey := crypto2.GenerateEncryptKey(seed)
-	// 第二层：PBKDF2 派生
-	encryptionKey = crypto2.GenerateEncryptKeyPBKDF2(scryptKey, seed, 100000)
+	salt := crypto2.Hash256(seed)
+	// 使用组合密钥派生函数（Scrypt + Argon2id）
+	key, err := crypto2.GenerateEncryptKey(seed, salt)
+	if err != nil {
+		panic("failed to derive encryption key: " + err.Error())
+	}
+	encryptionKey = key
 }
 
 func (s *Store) SaveWalletKey(addr string, ki types.KeyInfo) error {
@@ -32,7 +35,7 @@ func (s *Store) SaveWalletKey(addr string, ki types.KeyInfo) error {
 		log.Errorf("SaveWalletKey: failed to marshal key info: %v", err)
 		return err
 	}
-	enc, err := crypto2.Encrypt(raw, encryptionKey)
+	enc, err := crypto2.EncryptGCM(raw, encryptionKey)
 	if err != nil {
 		log.Errorf("SaveWalletKey: failed to encrypt key data: %v", err)
 		return err
@@ -77,7 +80,7 @@ func (s *Store) GetWalletKey(addr string) (*models.WalletKey, error) {
 		return nil, err
 	}
 
-	dnc, err := crypto2.Decrypt(item.EncryptedKey, encryptionKey)
+	dnc, err := crypto2.DecryptGCM(item.EncryptedKey, encryptionKey)
 	if err != nil {
 		log.Errorf("GetWalletKey: failed to decrypt key for %s: %v", addr, err)
 		return nil, err
@@ -119,7 +122,7 @@ func (s *Store) GetAllWalletAddresses() ([]*models.WalletKey, error) {
 
 	result := make([]*models.WalletKey, 0, len(items))
 	for _, t := range items {
-		decryptedKey, err := crypto2.Decrypt(t.EncryptedKey, encryptionKey)
+		decryptedKey, err := crypto2.DecryptGCM(t.EncryptedKey, encryptionKey)
 		if err != nil {
 			log.Errorf("GetAllWalletAddresses: failed to decrypt key for %s: %v", t.Address, err)
 			return nil, err
