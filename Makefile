@@ -77,17 +77,14 @@ build-linux: build-linux-amd64 build-linux-arm64 build-linux-386
 
 .PHONY: build-linux-amd64
 build-linux-amd64:
-
 	GOOS=linux GOARCH=amd64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-linux-amd64 main.go
 
 .PHONY: build-linux-arm64
 build-linux-arm64:
-
 	GOOS=linux GOARCH=arm64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-linux-arm64 main.go
 
 .PHONY: build-linux-386
 build-linux-386:
-
 	GOOS=linux GOARCH=386 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-linux-386 main.go
 
 # 跨平台编译 - macOS
@@ -96,12 +93,10 @@ build-darwin: build-darwin-amd64 build-darwin-arm64
 
 .PHONY: build-darwin-amd64
 build-darwin-amd64:
-
 	GOOS=darwin GOARCH=amd64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-darwin-amd64 main.go
 
 .PHONY: build-darwin-arm64
 build-darwin-arm64:
-
 	GOOS=darwin GOARCH=arm64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-darwin-arm64 main.go
 
 # 跨平台编译 - Windows
@@ -110,23 +105,19 @@ build-windows: build-windows-amd64 build-windows-arm64 build-windows-386
 
 .PHONY: build-windows-amd64
 build-windows-amd64:
-
 	GOOS=windows GOARCH=amd64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-windows-amd64.exe main.go
 
 .PHONY: build-windows-arm64
 build-windows-arm64:
-
 	GOOS=windows GOARCH=arm64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-windows-arm64.exe main.go
 
 .PHONY: build-windows-386
 build-windows-386:
-
 	GOOS=windows GOARCH=386 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-windows-386.exe main.go
 
 # 跨平台编译 - FreeBSD
 .PHONY: build-freebsd
 build-freebsd:
-
 	GOOS=freebsd GOARCH=amd64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-freebsd-amd64 main.go
 	GOOS=freebsd GOARCH=arm64 $(GO) build -ldflags "$(LDFLAGS)" -o $(APP_NAME)-freebsd-arm64 main.go
 
