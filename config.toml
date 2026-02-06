@@ -6,4 +6,4 @@ Token = ""
 Seed = "ed806000866f55eff1d96d060d66a8cd"
 
 [Database]
-Path = "~/.lotus-sign/wallet.db"
+Path = "./wallet.db"
