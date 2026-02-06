@@ -1,0 +1,9 @@
+[Lotus]
+Host = "https://api.node.glif.io/rpc/v0"
+Token = ""
+
+[Security]
+Seed = "ed806000866f55eff1d96d060d66a8cd"
+
+[Database]
+Path = "~/.lotus-sign/wallet.db"
