@@ -14,7 +14,7 @@ import (
 var WithdrawCmd = &cli.Command{
 	Name:      "withdraw",
 	Usage:     "Send funds between accounts",
-	ArgsUsage: "[targetAddress] [amount]",
+	ArgsUsage: "[amount]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "minerId",
@@ -22,6 +22,13 @@ var WithdrawCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		if cctx.String("minerId") == "" {
+			return fmt.Errorf("minerId is required")
+		}
+		if cctx.NArg() < 1 {
+			return fmt.Errorf("amount is required")
+		}
+
 		// 解析矿工 ID
 		miner, err := address.NewFromString(cctx.String("minerId"))
 		if err != nil {
@@ -29,7 +36,7 @@ var WithdrawCmd = &cli.Command{
 		}
 
 		// 解析提现金额
-		val, err := types.ParseFIL(cctx.Args().Get(1))
+		val, err := types.ParseFIL(cctx.Args().First())
 		if err != nil {
 			return fmt.Errorf("failed to parse amount: %w", err)
 		}
@@ -45,9 +52,7 @@ var WithdrawCmd = &cli.Command{
 			MinerID: miner,
 			Amount:  val,
 		}
-		client.Ex.Execute(data)
-
 		// 等待审批完成
-		return nil
+		return client.Ex.Execute(data)
 	},
 }

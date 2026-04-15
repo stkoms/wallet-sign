@@ -27,7 +27,10 @@ func main() {
 	}
 
 	// 初始化加密密钥
-	repository.InitEncryptionKey()
+	if err := repository.InitEncryptionKey(); err != nil {
+		log.Fatal(err)
+		return
+	}
 
 	// 加载配置
 	cfg, err := appcfg.LoadConfig()
@@ -38,6 +41,7 @@ func main() {
 
 	// 打开数据库连接并自动迁移表结构
 	if _, err := repository.OpenStore(cfg.DBDSN); err != nil {
+		log.Fatal(err)
 		return
 	}
 

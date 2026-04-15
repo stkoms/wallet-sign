@@ -37,5 +37,5 @@ type Actor struct {
 	Code    cid.Cid `json:"Code"`
 	Head    cid.Cid `json:"Head"`
 	Nonce   uint64  `json:"Nonce"`
-	Balance BigInt  `json:"Amount"`
+	Balance BigInt  `json:"Balance"`
 }

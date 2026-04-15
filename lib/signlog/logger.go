@@ -9,7 +9,7 @@ import (
 // SetupLogLevels 初始化日志等级
 func SetupLogLevels() {
 	if _, set := os.LookupEnv("GOLOG_LOG_LEVEL"); !set {
-		_ = logging.SetLogLevel("*", "INFO")
+		_ = logging.SetLogLevel("*", "ERROR")
 
 	}
 }

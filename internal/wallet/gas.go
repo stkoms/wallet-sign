@@ -55,7 +55,7 @@ func SetGas(api *vapi.Node, msg *types.Message) error {
 		feeCap, err := api.GasEstimateFeeCap(msg, 20)
 		if err != nil {
 			log.Errorf("SetGas: failed to estimate fee cap: %v", err)
-			return nil
+			return xerrors.Errorf("estimating gas fee cap: %w", err)
 		}
 		msg.GasFeeCap = feeCap
 		log.Debugf("SetGas: gas fee cap set to %s", feeCap)

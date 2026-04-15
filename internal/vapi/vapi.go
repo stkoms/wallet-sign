@@ -50,7 +50,7 @@ func (vapi Node) StateWaitMsg(msgCid cid.Cid) (*types.MsgLookup, error) {
 
 	if msgLookup.Receipt.ExitCode != 0 {
 		log.Errorf("StateWaitMsg: message execution failed with exit code: %d", msgLookup.Receipt.ExitCode)
-		return nil, fmt.Errorf("withdrawal failed with exit code: %d", msgLookup.Receipt.ExitCode)
+		return nil, fmt.Errorf("message execution failed with exit code: %d", msgLookup.Receipt.ExitCode)
 	}
 
 	log.Debugf("StateWaitMsg: message confirmed successfully, exit code: %d", msgLookup.Receipt.ExitCode)

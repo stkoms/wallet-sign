@@ -3,6 +3,7 @@ package wallet
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"wallet-sign/internal/repository"
@@ -10,6 +11,7 @@ import (
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/crypto"
 	logging "github.com/ipfs/go-log/v2"
+	"gorm.io/gorm"
 
 	"wallet-sign/internal/chain/types"
 )
@@ -130,8 +132,12 @@ func WalletHas(store *repository.Store, addr address.Address) (bool, error) {
 
 	_, err := store.GetWalletKey(addr.String())
 	if err != nil {
-		log.Debugf("WalletHas: key not found for address %s", addr.String())
-		return false, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Debugf("WalletHas: key not found for address %s", addr.String())
+			return false, nil
+		}
+		log.Errorf("WalletHas: failed to check key for address %s: %v", addr.String(), err)
+		return false, err
 	}
 
 	log.Debugf("WalletHas: key found for address %s", addr.String())

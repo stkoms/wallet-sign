@@ -67,6 +67,8 @@ var infoCmd = &cli.Command{
 			tablewriter.Col("key"),
 			tablewriter.Col("use"),
 			tablewriter.Col("balance"),
+			tablewriter.Col("market(avail)"),
+			tablewriter.Col("market(locked)"),
 		)
 
 		commit := map[address.Address]struct{}{}
@@ -78,6 +80,27 @@ var infoCmd = &cli.Command{
 		for _, ca := range mi.ControlAddresses {
 			post[ca] = struct{}{}
 		}
+
+		minerActor, err := node.StateGetActor(maddr)
+		if err != nil {
+			return err
+		}
+		minerBalance := types.FIL(minerActor.Balance).String()
+		minerMarketAvail := ""
+		minerMarketLocked := ""
+		if mbal, err := node.StateMarketBalance(maddr); err == nil {
+			minerMarketAvail = types.FIL(types.BigSub(mbal.Escrow, mbal.Locked)).String()
+			minerMarketLocked = types.FIL(mbal.Locked).String()
+		}
+		tw.Write(map[string]interface{}{
+			"name":           "miner",
+			"ID":             maddr,
+			"key":            "",
+			"use":            "market",
+			"balance":        minerBalance,
+			"market(avail)":  minerMarketAvail,
+			"market(locked)": minerMarketLocked,
+		})
 
 		printKey := func(name string, a address.Address) {
 			var actor *types.Actor
@@ -123,12 +146,21 @@ var infoCmd = &cli.Command{
 				uses = append(uses, color.MagentaString("deals"))
 			}
 
+			marketAvail := ""
+			marketLocked := ""
+			if mbal, err := node.StateMarketBalance(a); err == nil {
+				marketAvail = types.FIL(types.BigSub(mbal.Escrow, mbal.Locked)).String()
+				marketLocked = types.FIL(mbal.Locked).String()
+			}
+
 			tw.Write(map[string]interface{}{
-				"name":    name,
-				"ID":      a,
-				"key":     kstr,
-				"use":     strings.Join(uses, " "),
-				"balance": bstr,
+				"name":           name,
+				"ID":             a,
+				"key":            kstr,
+				"use":            strings.Join(uses, " "),
+				"balance":        bstr,
+				"market(avail)":  marketAvail,
+				"market(locked)": marketLocked,
 			})
 		}
 
@@ -171,9 +203,12 @@ var setOwner = &cli.Command{
 			return errors.New("参数数量错误")
 		}
 
-		minerid, err := address.NewFromString(cctx.String("minerid"))
-		if minerid.String() != " " {
+		if cctx.String("minerid") == "" {
 			return errors.New("minerid不能为空")
+		}
+		minerid, err := address.NewFromString(cctx.String("minerid"))
+		if err != nil {
+			return err
 		}
 
 		na, err := address.NewFromString(cctx.Args().First())
@@ -197,9 +232,7 @@ var setOwner = &cli.Command{
 			NewOwner:  na,
 			FromOwner: fa,
 		}
-		client.Ex.Execute(data)
-
-		return nil
+		return client.Ex.Execute(data)
 	},
 }
 
@@ -224,7 +257,14 @@ var setWorker = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		miner, err := address.NewFromString(cctx.Args().Get(0))
+		if cctx.NArg() < 1 {
+			return errors.New("必须提供新的 worker 地址")
+		}
+		if cctx.String("minerid") == "" {
+			return errors.New("minerid不能为空")
+		}
+
+		miner, err := address.NewFromString(cctx.String("minerid"))
 		if err != nil {
 			return err
 		}
@@ -234,7 +274,7 @@ var setWorker = &cli.Command{
 			return err
 		}
 		if !cctx.Bool("really-do-it") {
-			fmt.Println(cctx.App.Writer, "Pass --really-do-it to actually execute this action")
+			fmt.Fprintln(cctx.App.Writer, "Pass --really-do-it to actually execute this action")
 			return nil
 		}
 		client, err := service.NewClient()
@@ -248,9 +288,7 @@ var setWorker = &cli.Command{
 			NewWorker:       na,
 			NewControlAddrs: nil,
 		}
-		client.Ex.Execute(data)
-
-		return nil
+		return client.Ex.Execute(data)
 	},
 }
 
@@ -275,7 +313,14 @@ var confirmWorker = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		miner, err := address.NewFromString(cctx.Args().Get(0))
+		if cctx.NArg() < 1 {
+			return errors.New("必须提供新的 worker 地址")
+		}
+		if cctx.String("minerid") == "" {
+			return errors.New("minerid不能为空")
+		}
+
+		miner, err := address.NewFromString(cctx.String("minerid"))
 		if err != nil {
 			return err
 		}
@@ -300,8 +345,6 @@ var confirmWorker = &cli.Command{
 			MinerID:   miner,
 			NewWorker: na,
 		}
-		client.Ex.Execute(data)
-
-		return nil
+		return client.Ex.Execute(data)
 	},
 }

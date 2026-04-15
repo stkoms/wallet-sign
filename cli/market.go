@@ -46,8 +46,6 @@ var MarketWithdrawCmd = &cli.Command{
 			MinerID: addr,
 			Amount:  amount,
 		}
-		client.Ex.Execute(data)
-
-		return nil
+		return client.Ex.Execute(data)
 	},
 }

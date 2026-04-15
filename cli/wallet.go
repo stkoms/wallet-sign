@@ -113,13 +113,8 @@ var walletExport = &cli.Command{
 			return err
 		}
 
-		// 获取数据库连接
-		dsn := os.Getenv("DB_DSN")
-		if dsn == "" {
-			return fmt.Errorf("DB_DSN environment variable not set")
-		}
-
-		store, err := repository.OpenStore(dsn)
+		cfg := cctx.Context.Value(CtxConfig).(*appcfg.Config)
+		store, err := repository.OpenStore(cfg.DBDSN)
 		if err != nil {
 			return fmt.Errorf("failed to open database: %w", err)
 		}
@@ -147,10 +142,6 @@ var walletImport = &cli.Command{
 			Name:  "format",
 			Usage: "指定密钥输入格式",
 			Value: "hex-lotus",
-		},
-		&cli.BoolFlag{
-			Name:  "as-default",
-			Usage: "将导入的密钥设置为默认密钥",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -206,6 +197,9 @@ var walletImport = &cli.Command{
 			if err := json.Unmarshal(inpdata, &f); err != nil {
 				return xerrors.Errorf("failed to parse go-filecoin key: %s", err)
 			}
+			if len(f.KeyInfo) == 0 {
+				return fmt.Errorf("go-filecoin key file is empty")
+			}
 
 			gk := f.KeyInfo[0]
 			ki.PrivateKey = gk.PrivateKey
@@ -243,7 +237,16 @@ var walletImport = &cli.Command{
 var walletList = &cli.Command{
 	Name:  "list",
 	Usage: "列出钱包地址",
-	Flags: []cli.Flag{},
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "id",
+			Usage: "显示对应的 ID 地址",
+		},
+		&cli.BoolFlag{
+			Name:  "market",
+			Usage: "显示市场可用和锁定余额",
+		},
+	},
 	Action: func(cctx *cli.Context) error {
 
 		cfg := cctx.Context.Value(CtxConfig).(*appcfg.Config)
@@ -260,16 +263,24 @@ var walletList = &cli.Command{
 
 		// 获取本地钱包实例
 		addrs, err := store.GetAllWalletAddresses()
-		// 创建表格输出
-		tw := tablewriter.New(
+		cols := []tablewriter.Column{
 			tablewriter.Col("Address"),
-			tablewriter.Col("ID"),
-			tablewriter.Col("Amount"),
-			tablewriter.Col("Market(Avail)"),
-			tablewriter.Col("Market(Locked)"),
+		}
+		if cctx.Bool("id") {
+			cols = append(cols, tablewriter.Col("ID"))
+		}
+		cols = append(cols, tablewriter.Col("Amount"))
+		if cctx.Bool("market") {
+			cols = append(cols,
+				tablewriter.Col("Market(Avail)"),
+				tablewriter.Col("Market(Locked)"),
+			)
+		}
+		cols = append(cols,
 			tablewriter.Col("Nonce"),
-			tablewriter.Col("Default"),
-			tablewriter.NewLineCol("Error"))
+			tablewriter.NewLineCol("Error"),
+		)
+		tw := tablewriter.New(cols...)
 
 		// 遍历所有地址，获取详细信息
 		for _, addr := range addrs {
@@ -340,10 +351,13 @@ var walletBalance = &cli.Command{
 		node := vapi.NewNode(ctx, client)
 
 		// 解析地址参数
-		addr, err := address.NewFromString(os.Args[3])
+		if !cctx.Args().Present() {
+			return fmt.Errorf("必须提供钱包地址")
+		}
+
+		addr, err := address.NewFromString(cctx.Args().First())
 		if err != nil {
-			fmt.Printf("Invalid address: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("invalid address: %w", err)
 		}
 
 		// 查询地址余额
@@ -355,11 +369,6 @@ var walletBalance = &cli.Command{
 		// 输出地址和余额信息
 		fmt.Printf("Address: %s\n", addr)
 		fmt.Printf("Amount: %s\n", types.FIL(balance))
-
-		// 转换为 FIL 单位并显示
-		if err == nil {
-			fmt.Printf("Amount: %s\n", types.FIL(balance))
-		}
 
 		return nil
 	},

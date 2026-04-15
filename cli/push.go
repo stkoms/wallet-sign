@@ -32,6 +32,9 @@ var MpoolPushCmd = &cli.Command{
 
 		// 获取消息参数
 		msg := cctx.String("msg")
+		if msg == "" {
+			return fmt.Errorf("--msg is required")
+		}
 		// 解码十六进制消息
 		buf, err := hex.DecodeString(msg)
 		if err != nil {
@@ -49,8 +52,7 @@ var MpoolPushCmd = &cli.Command{
 		if err != nil {
 			return xerrors.Errorf("failed to push new message to mempool: %w", err)
 		}
-
-		fmt.Println("new message cid: ", msgCid)
+		_ = msgCid
 		return nil
 	},
 }

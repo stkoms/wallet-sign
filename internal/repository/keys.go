@@ -16,15 +16,21 @@ import (
 var encryptionKey []byte
 
 // InitEncryptionKey 初始化加密密钥
-func InitEncryptionKey() {
-	seed := []byte(config.LotusConfig.Security.Seed)
+func InitEncryptionKey() error {
+	var seed []byte
+	if config.LotusConfig.Security != nil && config.LotusConfig.Security.Seed != "" {
+		seed = []byte(config.LotusConfig.Security.Seed)
+	} else {
+		seed = []byte("wallet-sign-default-seed")
+	}
 	salt := crypto2.Hash256(seed)
 	// 使用组合密钥派生函数（Scrypt + Argon2id）
 	key, err := crypto2.GenerateEncryptKey(seed, salt)
 	if err != nil {
-		panic("failed to derive encryption key: " + err.Error())
+		return err
 	}
 	encryptionKey = key
+	return nil
 }
 
 func (s *Store) SaveWalletKey(addr string, ki types.KeyInfo) error {
@@ -41,7 +47,7 @@ func (s *Store) SaveWalletKey(addr string, ki types.KeyInfo) error {
 		return err
 	}
 
-	var existing *models.WalletKey
+	var existing models.WalletKey
 	if err = s.DB.Where("address = ?", addr).First(&existing).Error; err == nil {
 		log.Infof("SaveWalletKey: updating existing key for %s", addr)
 		existing.KeyType = string(ki.Type)

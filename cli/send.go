@@ -49,6 +49,13 @@ var SendCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		if cctx.String("from") == "" {
+			return fmt.Errorf("--from is required")
+		}
+		if cctx.NArg() < 2 {
+			return fmt.Errorf("target address and amount are required")
+		}
+
 		// 解析发送方地址
 		fromAddr, err := address.NewFromString(cctx.String("from"))
 		if err != nil {
@@ -79,8 +86,6 @@ var SendCmd = &cli.Command{
 			ToAddr:   toAddr,
 			Amount:   val,
 		}
-		client.Ex.Execute(data)
-
-		return nil
+		return client.Ex.Execute(data)
 	},
 }

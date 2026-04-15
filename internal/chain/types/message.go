@@ -68,13 +68,13 @@ func (m *Message) ToStorageBlock() (block.Block, error) {
 	return block.NewBlockWithCid(data, c)
 }
 
-func (m *Message) Cid() cid.Cid {
+func (m *Message) Cid() (cid.Cid, error) {
 	b, err := m.ToStorageBlock()
 	if err != nil {
-		panic(fmt.Sprintf("failed to marshal message: %s", err))
+		return cid.Undef, fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	return b.Cid()
+	return b.Cid(), nil
 }
 
 type mCid struct {
@@ -85,9 +85,13 @@ type mCid struct {
 type RawMessage Message
 
 func (m *Message) MarshalJSON() ([]byte, error) {
+	msgCid, err := m.Cid()
+	if err != nil {
+		return nil, err
+	}
 	return json.Marshal(&mCid{
 		RawMessage: (*RawMessage)(m),
-		CID:        m.Cid(),
+		CID:        msgCid,
 	})
 }
 
@@ -131,17 +135,17 @@ func (sm *SignedMessage) ToStorageBlock() (block.Block, error) {
 	return block.NewBlockWithCid(data, c)
 }
 
-func (sm *SignedMessage) Cid() cid.Cid {
+func (sm *SignedMessage) Cid() (cid.Cid, error) {
 	if sm.Signature.Type == crypto.SigTypeBLS {
 		return sm.Message.Cid()
 	}
 
 	sb, err := sm.ToStorageBlock()
 	if err != nil {
-		panic(err)
+		return cid.Undef, err
 	}
 
-	return sb.Cid()
+	return sb.Cid(), nil
 }
 
 type smCid struct {
@@ -152,8 +156,12 @@ type smCid struct {
 type RawSignedMessage SignedMessage
 
 func (sm *SignedMessage) MarshalJSON() ([]byte, error) {
+	msgCid, err := sm.Cid()
+	if err != nil {
+		return nil, err
+	}
 	return json.Marshal(&smCid{
 		RawSignedMessage: (*RawSignedMessage)(sm),
-		CID:              sm.Cid(),
+		CID:              msgCid,
 	})
 }

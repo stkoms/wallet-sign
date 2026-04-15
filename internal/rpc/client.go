@@ -50,16 +50,19 @@ type jsonRPCError struct {
 func NewLotusApi() *Client {
 	log.Info("NewLotusApi: initializing Lotus API client")
 
-	apiURL := appcfg.LotusConfig.Lotus.Host
-
-	apiToken := appcfg.LotusConfig.Lotus.Token
+	apiURL := "https://api.node.glif.io/rpc/v0"
+	apiToken := ""
+	if appcfg.LotusConfig.Lotus != nil {
+		if appcfg.LotusConfig.Lotus.Host != "" {
+			apiURL = appcfg.LotusConfig.Lotus.Host
+		}
+		apiToken = appcfg.LotusConfig.Lotus.Token
+	}
 
 	if apiToken != "" {
 		log.Infof("NewLotusApi: connecting to %s (with token)", apiURL)
-		fmt.Printf("Connecting to %s (with token)\n", apiURL)
 	} else {
 		log.Warnf("NewLotusApi: connecting to %s (no token)", apiURL)
-		fmt.Printf("Connecting to %s (no token)\n", apiURL)
 	}
 
 	return &Client{

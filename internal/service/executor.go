@@ -33,15 +33,15 @@ func NewExecutor(store *repository.Store) *Executor {
 	return &Executor{store: store, node: node}
 }
 
-func (e *Executor) Execute(req *Payload) {
-
+func (e *Executor) Execute(req *Payload) error {
 	err := e.executeRequest(req)
 	if err != nil {
-		log.Errorf("Execute: failed to execute request #%d: %v", req.Type, err)
+		log.Errorf("Execute: failed to execute request %s: %v", req.Type, err)
+		return err
 	}
 
-	log.Infof("Execute: request #%d completed successfully", req.Type)
-
+	log.Infof("Execute: request %s completed successfully", req.Type)
+	return nil
 }
 
 func (e *Executor) executeRequest(req *Payload) error {
@@ -67,6 +67,23 @@ func (e *Executor) executeRequest(req *Payload) error {
 		var payload BatchTransferPayload
 		payload.Items = req.Items
 		return e.batchTransfer(payload)
+	case RequestTypeMinerChangeOwner:
+		var payload MinerChangeOwnerPayload
+		payload.MinerID = req.MinerID
+		payload.NewOwner = req.NewOwner
+		payload.FromOwner = req.FromOwner
+		return e.changeMinerOwner(payload)
+	case RequestTypeMinerChangeWorker:
+		var payload MinerChangeWorkerPayload
+		payload.MinerID = req.MinerID
+		payload.NewWorker = req.NewWorker
+		payload.NewControlAddrs = req.NewControlAddrs
+		return e.changeMinerWorker(payload)
+	case RequestTypeMinerConfirmWorker:
+		var payload MinerConfirmWorkerPayload
+		payload.MinerID = req.MinerID
+		payload.NewWorker = req.NewWorker
+		return e.confirmMinerWorker(0, payload)
 
 	default:
 		return fmt.Errorf("unsupported request type: %s", req.Type)
@@ -110,7 +127,13 @@ func (e *Executor) transfer(p TransferPayload) error {
 		return fmt.Errorf("wallet does not have key for %s", fromAddr)
 	}
 
-	sig, err := wallet.WalletSign(e.store, fromAddr, msg.Cid().Bytes())
+	signingCid, err := msg.Cid()
+	if err != nil {
+		log.Errorf("transfer: failed to compute message cid: %v", err)
+		return err
+	}
+
+	sig, err := wallet.WalletSign(e.store, fromAddr, signingCid.Bytes())
 	if err != nil {
 		log.Errorf("transfer: failed to sign message: %v", err)
 		return err
@@ -204,7 +227,13 @@ func (e *Executor) minerWithdraw(p MinerWithdrawPayload) error {
 		return fmt.Errorf("wallet does not have key for %s", ownerAddr)
 	}
 
-	sig, err := wallet.WalletSign(e.store, ownerAddr, msg.Cid().Bytes())
+	signingCid, err := msg.Cid()
+	if err != nil {
+		log.Errorf("minerWithdraw: failed to compute message cid: %v", err)
+		return err
+	}
+
+	sig, err := wallet.WalletSign(e.store, ownerAddr, signingCid.Bytes())
 	if err != nil {
 		log.Errorf("minerWithdraw: failed to sign: %v", err)
 		return err
@@ -228,9 +257,11 @@ func (e *Executor) minerWithdraw(p MinerWithdrawPayload) error {
 }
 
 func (e *Executor) marketWithdraw(p MarketWithdrawPayload) error {
+	var err error
+
 	idAddr := p.Address
 	if p.Address.Protocol() != address.ID {
-		_, err := e.node.StateLookupID(p.Address)
+		idAddr, err = e.node.StateLookupID(p.Address)
 		if err != nil {
 			log.Errorf("marketWithdraw: failed to lookup ID for %s: %v", p.Address, err)
 			return err
@@ -238,7 +269,7 @@ func (e *Executor) marketWithdraw(p MarketWithdrawPayload) error {
 	}
 	signAddr := p.Address
 	if p.Address.Protocol() == address.ID {
-		_, err := e.node.StateAccountKey(p.Address)
+		signAddr, err = e.node.StateAccountKey(p.Address)
 		if err != nil {
 			log.Errorf("marketWithdraw: failed to get account key for %s: %v", p.Address, err)
 			return err
@@ -297,7 +328,13 @@ func (e *Executor) marketWithdraw(p MarketWithdrawPayload) error {
 		return fmt.Errorf("wallet does not have key for %s", signAddr)
 	}
 
-	sig, err := wallet.WalletSign(e.store, signAddr, msg.Cid().Bytes())
+	signingCid, err := msg.Cid()
+	if err != nil {
+		log.Errorf("marketWithdraw: failed to compute message cid: %v", err)
+		return err
+	}
+
+	sig, err := wallet.WalletSign(e.store, signAddr, signingCid.Bytes())
 	if err != nil {
 		log.Errorf("marketWithdraw: failed to sign: %v", err)
 		return err
@@ -394,7 +431,13 @@ func (e *Executor) changeMinerOwner(p MinerChangeOwnerPayload) error {
 		return fmt.Errorf("wallet does not have key for %s", p.FromOwner)
 	}
 
-	sig, err := wallet.WalletSign(e.store, p.FromOwner, msg.Cid().Bytes())
+	signingCid, err := msg.Cid()
+	if err != nil {
+		log.Errorf("changeMinerOwner: failed to compute message cid: %v", err)
+		return err
+	}
+
+	sig, err := wallet.WalletSign(e.store, p.FromOwner, signingCid.Bytes())
 	if err != nil {
 		log.Errorf("changeMinerOwner: failed to sign: %v", err)
 		return err
@@ -480,7 +523,13 @@ func (e *Executor) changeMinerWorker(p MinerChangeWorkerPayload) error {
 		return fmt.Errorf("wallet does not have key for %s", msg.From)
 	}
 
-	sig, err := wallet.WalletSign(e.store, msg.From, msg.Cid().Bytes())
+	signingCid, err := msg.Cid()
+	if err != nil {
+		log.Errorf("changeMinerWorker: failed to compute message cid: %v", err)
+		return err
+	}
+
+	sig, err := wallet.WalletSign(e.store, msg.From, signingCid.Bytes())
 	if err != nil {
 		log.Errorf("changeMinerWorker: failed to sign: %v", err)
 		return err
@@ -566,7 +615,13 @@ func (e *Executor) confirmMinerWorker(reqID uint, p MinerConfirmWorkerPayload) e
 	}
 
 	log.Infof("confirmMinerWorker: signing message for %s", msg.From)
-	sig, err := wallet.WalletSign(e.store, msg.From, msg.Cid().Bytes())
+	signingCid, err := msg.Cid()
+	if err != nil {
+		log.Errorf("confirmMinerWorker: failed to compute message cid: %v", err)
+		return err
+	}
+
+	sig, err := wallet.WalletSign(e.store, msg.From, signingCid.Bytes())
 	if err != nil {
 		log.Errorf("confirmMinerWorker: failed to sign: %v", err)
 		return err
